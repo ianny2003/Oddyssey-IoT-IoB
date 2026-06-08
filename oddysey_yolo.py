@@ -1,6 +1,5 @@
 from ultralytics import YOLO
 import cv2
-import numpy as np
 import time
 
 # ==========================================
@@ -8,26 +7,33 @@ import time
 # Monitoramento Biológico Ambiental
 # ==========================================
 
-VIDEO = r"C:\Users\ianny\OneDrive\Desktop\Iot & IoB\canarios.mp4"
+VIDEO = "canarios.mp4"
 
 # Modelo YOLO
 model = YOLO("yolov8s.pt")
 
 # Quantidade esperada de aves
-AVES_ESPERADAS = 5
+AVES_ESPERADAS = 15
 
 # Limiares
 CONFIANCA_MINIMA = 0.25
 
-LIMITE_MOVIMENTO_SUSPEITO = 35000
+LIMITE_MOVIMENTO_SUSPEITO = 37500
 LIMITE_MOVIMENTO_ALERTA = 70000
 
-# Nova lógica
-LIMITE_AVES = 25
-TEMPO_RECUPERACAO = 5
+LIMITE_AVES = int(AVES_ESPERADAS * 0.9)
+
+TEMPO_RECUPERACAO = 10
+TEMPO_CONFIRMACAO_ALERTA = 3
+
+# Satélite (simulado)
+foco_calor = False
+fumaca_detectada = False
+risco_climatico = False
 
 estado = "NORMAL"
 inicio_recuperacao = None
+inicio_alerta = None
 
 cap = cv2.VideoCapture(VIDEO)
 
@@ -37,7 +43,7 @@ if not ret:
     print("Erro ao abrir vídeo")
     exit()
 
-frame_anterior = cv2.resize(frame_anterior, (960, 540))
+frame_anterior = cv2.resize(frame_anterior, (960, 600))
 
 gray_anterior = cv2.cvtColor(
     frame_anterior,
@@ -57,7 +63,7 @@ while True:
     if not ret:
         break
 
-    frame = cv2.resize(frame, (960, 540))
+    frame = cv2.resize(frame, (960, 600))
 
     # ==========================
     # YOLO
@@ -75,9 +81,7 @@ while True:
         for box in result.boxes:
 
             classe = int(box.cls[0])
-
             nome = model.names[classe]
-
             confianca = float(box.conf[0])
 
             if nome != "bird":
@@ -112,7 +116,7 @@ while True:
             )
 
     # ==========================
-    # ANALISE DE MOVIMENTO
+    # ANÁLISE DE MOVIMENTO
     # ==========================
 
     gray = cv2.cvtColor(
@@ -151,62 +155,98 @@ while True:
     gray_anterior = gray.copy()
 
     # ==========================
-    # CLASSIFICACAO
+    # TEMPO
     # ==========================
 
     agora = time.time()
 
-    # NORMAL
+    tempo_video = (
+        cap.get(cv2.CAP_PROP_POS_MSEC) / 1000
+    )
+
+    # ==========================
+    # SATÉLITE (SIMULADO)
+    # ==========================
+
+    foco_calor = 10 <= tempo_video <= 30
+    fumaca_detectada = 25 <= tempo_video <= 30
+
+    risco_climatico = (
+        foco_calor or fumaca_detectada
+    )
+
+    # ==========================
+    # MÁQUINA DE ESTADOS
+    # ==========================
+
     if estado == "NORMAL":
 
-        if movimento_total > LIMITE_MOVIMENTO_SUSPEITO:
-
+        if (
+            movimento_total > LIMITE_MOVIMENTO_SUSPEITO
+            or risco_climatico
+        ):
             estado = "SUSPEITO"
             inicio_recuperacao = agora
+            inicio_alerta = None
 
-    # SUSPEITO
     elif estado == "SUSPEITO":
 
-        # Movimento muito forte + redução de aves
-        if (
-            movimento_total > LIMITE_MOVIMENTO_ALERTA
-            and aves_detectadas < LIMITE_AVES
-        ):
+        condicao_alerta = (
+            (
+                movimento_total > LIMITE_MOVIMENTO_ALERTA
+                and aves_detectadas < LIMITE_AVES
+            )
+            or
+            (
+                risco_climatico
+                and aves_detectadas < LIMITE_AVES
+            )
+        )
 
-            estado = "ALERTA"
-            inicio_recuperacao = None
+        if condicao_alerta:
+
+            if inicio_alerta is None:
+                inicio_alerta = agora
+
+            tempo_alerta = (
+                agora - inicio_alerta
+            )
+
+            if (
+                tempo_alerta
+                >= TEMPO_CONFIRMACAO_ALERTA
+            ):
+                estado = "ALERTA"
+                inicio_recuperacao = None
+                inicio_alerta = None
 
         else:
+
+            inicio_alerta = None
 
             if inicio_recuperacao is not None:
 
-                tempo = agora - inicio_recuperacao
+                tempo = (
+                    agora - inicio_recuperacao
+                )
 
                 if tempo >= TEMPO_RECUPERACAO:
-
                     estado = "NORMAL"
                     inicio_recuperacao = None
 
-    # ALERTA
     elif estado == "ALERTA":
 
-        # Continua faltando aves
-        if aves_detectadas < LIMITE_AVES:
-
+        if risco_climatico:
             estado = "ALERTA"
-            inicio_recuperacao = None
+
+        elif aves_detectadas < LIMITE_AVES:
+            estado = "ALERTA"
 
         else:
-
-            # Aves voltaram
             estado = "SUSPEITO"
 
-            if inicio_recuperacao is None:
-
-                inicio_recuperacao = agora
-
     # ==========================
-    # COR E TEXTO
+    # VISUAL
     # ==========================
 
     if estado == "NORMAL":
@@ -224,14 +264,12 @@ while True:
         status = "ALERTA - AGITACAO COLETIVA"
         cor_banner = (0, 0, 255)
 
-    # ==========================
-    # PAINEL
-    # ==========================
+    # Banner superior
 
     cv2.rectangle(
         frame,
         (0, 0),
-        (960, 90),
+        (960, 80),
         cor_banner,
         -1
     )
@@ -256,32 +294,44 @@ while True:
         2
     )
 
-    cv2.putText(
+    # Painel inferior
+
+    cv2.rectangle(
         frame,
-        f"Aves Detectadas: {aves_detectadas}",
-        (20, 130),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
-        (0, 255, 255),
-        2
+        (0, 540),
+        (960, 600),
+        (40, 40, 40),
+        -1
+    )
+
+    texto_inferior = (
+        f"AVES DETECTADAS: {aves_detectadas} | "
+        f"AVES ESPERADAS: {AVES_ESPERADAS} | "
+        f"MOVIMENTO: {movimento_total}"
     )
 
     cv2.putText(
         frame,
-        f"Movimento: {movimento_total}",
-        (20, 165),
+        texto_inferior,
+        (15, 565),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
-        (0, 255, 255),
+        0.65,
+        (255, 255, 255),
         2
+    )
+
+    texto_satelite = (
+        f"DADOS VIA SATELITE -> "
+        f"FOCO DE CALOR: {'SIM' if foco_calor else 'NAO'} | "
+        f"FUMACA: {'SIM' if fumaca_detectada else 'NAO'}"
     )
 
     cv2.putText(
         frame,
-        f"Aves Esperadas: {AVES_ESPERADAS}",
-        (20, 200),
+        texto_satelite,
+        (15, 590),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.7,
+        0.60,
         (0, 255, 255),
         2
     )
