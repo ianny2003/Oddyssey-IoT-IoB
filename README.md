@@ -1,5 +1,7 @@
 # ODYSSEY - Monitoramento Biológico Ambiental
 
+<img width="1000" height="200" alt="image" src="https://github.com/user-attachments/assets/f04fcb59-1a9e-4cd1-88ae-a70012a135c0" />
+
 ## Unindo Visão Computacional e monitoramento ambiental preventivo
 
 O ODYSSEY é uma solução desenvolvida em Python que utiliza Visão Computacional para monitorar o comportamento de espécies bioindicadoras e identificar possíveis riscos ambientais.
@@ -197,6 +199,7 @@ ODDYSSEY/
 ---
 
 # Integrantes
+### Turma 3ESPG
 
 | Nome                               | RM       |
 | ---------------------------------- | -------- |
