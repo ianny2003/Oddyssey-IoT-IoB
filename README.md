@@ -1,8 +1,8 @@
-# ODDYSEY - Monitoramento Biológico Ambiental
+# ODYSSEY - Monitoramento Biológico Ambiental
 
 ## Unindo Visão Computacional e monitoramento ambiental preventivo
 
-O ODDYSEY é uma solução desenvolvida em Python que utiliza Visão Computacional para monitorar o comportamento de espécies bioindicadoras e identificar possíveis riscos ambientais.
+O ODYSSEY é uma solução desenvolvida em Python que utiliza Visão Computacional para monitorar o comportamento de espécies bioindicadoras e identificar possíveis riscos ambientais.
 
 ---
 
@@ -32,9 +32,9 @@ O objetivo é demonstrar como diferentes fontes de informação podem ser combin
 
 # 🎥 Demonstração da Solução
 
-O vídeo abaixo apresenta o funcionamento completo do sistema ODDYSEY.
+O vídeo abaixo apresenta o funcionamento completo do sistema ODYSSEY.
 
-[▶ Assistir Demonstração](COLE_AQUI_O_LINK_DO_VIDEO)
+[▶ Assistir Demonstração](https://youtu.be/OVSkf2IT-R4)
 
 ### Funcionalidades apresentadas
 
@@ -163,7 +163,7 @@ Painel de monitoramento
 ```bash
 git clone https://github.com/SEU-USUARIO/ODDYSEY.git
 
-cd ODDYSEY
+cd ODYSSEY
 ```
 
 ## Instalar Dependências
