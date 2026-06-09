@@ -161,9 +161,9 @@ Painel de monitoramento
 ## Clonar o Repositório
 
 ```bash
-git clone https://github.com/SEU-USUARIO/ODDYSEY.git
+git clone https://github.com/ianny2003/Oddyssey-IoT-IoB.git
 
-cd ODYSSEY
+cd Oddyssey-IoT-IoB
 ```
 
 ## Instalar Dependências
